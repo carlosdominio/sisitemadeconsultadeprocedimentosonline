@@ -105,6 +105,27 @@ app.delete('/api/procedures/:id', async (req, res) => {
     }
 });
 
+app.patch('/api/procedures/:id', async (req, res) => {
+    const { id } = req.params;
+    const { procedure_text } = req.body;
+    if (!procedure_text) {
+        return res.status(400).json({ error: 'O texto do procedimento é obrigatório' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE procedures SET procedure_text = $1 WHERE id = $2 RETURNING *',
+            [procedure_text, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Procedimento não encontrado' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao editar procedimento' });
+    }
+});
+
 // --- SERVIR ARQUIVOS ESTÁTICOS ---
 app.use(express.static(__dirname));
 

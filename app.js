@@ -153,4 +153,29 @@ document.addEventListener('DOMContentLoaded', () => {
             showProcedures(clientId);
         }
     });
+
+    editProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = proceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento para editar.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const clientId = clientSelect.value;
+        const currentText = selectedProcedure.textContent.split('. ')[1] || '';
+
+        const newText = prompt('Edite o texto do procedimento:', currentText);
+
+        if (newText !== null && newText.trim() !== '') {
+            await fetchData(`${API_URL}/procedures/${procedureId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ procedure_text: newText }),
+            });
+            
+            alert('Procedimento atualizado com sucesso!');
+            showProcedures(clientId);
+        }
+    });
 });
