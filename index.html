@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Consulta de Procedimentos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Sistema de Consulta de Procedimentos de Cliente</h1>
+    <div class="container">
+        <label for="clientSelect">Selecione um cliente:</label>
+        <select id="clientSelect">
+            <option value="">-- Escolha um cliente --</option>
+        </select>
+        <button id="addClientBtn">Adicionar Cliente</button>
+        <button id="editClientBtn">Editar Nome do Cliente</button>
+
+        <div id="proceduresContainer" style="display: none;">
+            <h2>Procedimentos do Cliente</h2>
+            <ul id="proceduresList"></ul>
+            <button id="addProcedureBtn">Adicionar Procedimento</button>
+            <button id="editProcedureBtn">Editar Procedimento</button>
+            <button id="deleteProcedureBtn">Remover Procedimento</button>
+        </div>
+
+        <h2>Prestadores</h2>
+        <label for="providerSelect">Selecione um prestador:</label>
+        <select id="providerSelect">
+            <option value="">-- Escolha um prestador --</option>
+        </select>
+        <button id="addProviderBtn">Adicionar Prestador</button>
+        <button id="editProviderBtn">Editar Nome do Prestador</button>
+        <button id="editProviderImageBtn">Editar Imagem do Prestador</button>
+        <button id="deleteProviderBtn">Excluir Prestador</button>
+
+        <label for="sinistroSelect">Selecione um tipo de sinistro:</label>
+        <select id="sinistroSelect">
+            <option value="">-- Escolha um tipo de sinistro --</option>
+            <option value="acidentes">Acidentes</option>
+            <option value="avarias">Avarias</option>
+            <option value="roubo">Roubo - Brasil</option>
+            <option value="exclusoes">Exclusões</option>
+        </select>
+
+        <div id="additionalProviderProceduresContainer" style="display: none;">
+            <h3 id="additionalProviderProceduresTitle">Procedimentos do Prestador AON </h3>
+            <ul id="additionalProviderProceduresList"><li data-index="0">1. Revisão</li><li data-index="1">2. Aprovação</li></ul>
+            <button id="addAdditionalProviderProcedureBtn">Adicionar Procedimento</button>
+            <button id="editAdditionalProviderProcedureBtn">Editar Procedimento</button>
+            <button id="deleteAdditionalProviderProcedureBtn">Remover Procedimento</button>
+        </div>
+
+        <div id="providerProceduresContainer" style="display: none;">
+            <h3 id="providerProceduresTitle">Procedimentos do Prestador DEMAIS CLIENTES</h3>
+            <ul id="providerProceduresList"></ul>
+            <button id="addProviderProcedureBtn">Adicionar Procedimento</button>
+            <button id="editProviderProcedureBtn">Editar Procedimento</button>
+            <button id="deleteProviderProcedureBtn">Remover Procedimento</button>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
