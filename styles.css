@@ -63,7 +63,7 @@ li.first-item {
 }
 
 button {
-    background-color: #007bff;
+    background-color: #dc3545; /* Vermelho */
     color: white;
     border: none;
     padding: 10px 15px;
@@ -73,5 +73,5 @@ button {
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #c82333; /* Vermelho mais escuro para hover */
 }
