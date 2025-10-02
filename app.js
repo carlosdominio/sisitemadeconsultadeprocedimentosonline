@@ -1,5 +1,5 @@
-
-const API_URL = 'http://localhost:3000/api';
+// Use a relative URL for the API. This will work both locally and on Render.
+const API_URL = '/api';
 
 // Elementos DOM
 const clientSelect = document.getElementById('clientSelect');
@@ -38,6 +38,10 @@ async function fetchData(url, options = {}) {
             const errorText = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
+        // Se o método for DELETE e a resposta for 204, não há corpo para parsear
+        if (response.status === 204) {
+            return null; 
+        }
         return response.json();
     } catch (error) {
         console.error('API Error:', error);
@@ -59,19 +63,6 @@ async function populateClients() {
     }
 }
 
-async function populateProviders() {
-    const providers = await fetchData(`${API_URL}/providers`);
-    providerSelect.innerHTML = '<option value="">-- Escolha um prestador --</option>';
-    if (providers) {
-        providers.forEach(provider => {
-            const option = document.createElement('option');
-            option.value = provider.id;
-            option.textContent = provider.name;
-            providerSelect.appendChild(option);
-        });
-    }
-}
-
 async function showProcedures(clientId) {
     if (!clientId) {
         proceduresContainer.style.display = 'none';
@@ -83,7 +74,7 @@ async function showProcedures(clientId) {
         procedures.forEach((proc, index) => {
             const li = document.createElement('li');
             li.textContent = `${index + 1}. ${proc.procedure_text}`;
-            li.dataset.id = proc.id; // Armazena o ID do BD
+            li.dataset.id = proc.id;
             li.dataset.index = index;
             proceduresList.appendChild(li);
         });
@@ -91,21 +82,52 @@ async function showProcedures(clientId) {
     }
 }
 
-async function showProviderProcedures(providerId, sinistroType) {
-    if (!providerId || !sinistroType) {
-        providerProceduresContainer.style.display = 'none';
-        return;
-    }
-    const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
-    providerProceduresList.innerHTML = '';
-    if (procedures) {
-        procedures.forEach((proc, index) => {
-            const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${proc.procedure_text}`;
-            li.dataset.id = proc.id;
-            providerProceduresList.appendChild(li);
-        });
-    }
-    providerProceduresContainer.style.display = 'block';
-}
+// --- Lógica de Eventos ---
 
+document.addEventListener('DOMContentLoaded', () => {
+    populateClients();
+
+    clientSelect.addEventListener('change', () => {
+        const clientId = clientSelect.value;
+        showProcedures(clientId);
+    });
+
+    addClientBtn.addEventListener('click', async () => {
+        const clientName = prompt('Digite o nome do novo cliente:');
+        if (clientName) {
+            const newClient = await fetchData(`${API_URL}/clients`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name: clientName }),
+            });
+            if (newClient) {
+                alert('Cliente adicionado com sucesso!');
+                populateClients();
+            }
+        }
+    });
+
+    addProcedureBtn.addEventListener('click', async () => {
+        const clientId = clientSelect.value;
+        if (!clientId) {
+            alert('Por favor, selecione um cliente primeiro.');
+            return;
+        }
+        const procedureText = prompt('Digite o texto do novo procedimento:');
+        if (procedureText) {
+            const newProcedure = await fetchData(`${API_URL}/clients/${clientId}/procedures`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ procedure_text: procedureText }),
+            });
+            if (newProcedure) {
+                alert('Procedimento adicionado com sucesso!');
+                showProcedures(clientId);
+            }
+        }
+    });
+});
