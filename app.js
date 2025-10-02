@@ -64,6 +64,19 @@ async function populateClients() {
     clientSelect.value = currentClientId;
 }
 
+async function populateProviders() {
+    const providers = await fetchData(`${API_URL}/providers`);
+    providerSelect.innerHTML = '<option value="">-- Escolha um prestador --</option>';
+    if (providers) {
+        providers.forEach(provider => {
+            const option = document.createElement('option');
+            option.value = provider.id;
+            option.textContent = provider.name;
+            providerSelect.appendChild(option);
+        });
+    }
+}
+
 async function showProcedures(clientId) {
     if (!clientId) {
         proceduresContainer.style.display = 'none';
@@ -95,6 +108,7 @@ async function showProcedures(clientId) {
 // --- Lógica de Eventos ---
 document.addEventListener('DOMContentLoaded', () => {
     populateClients();
+    populateProviders();
 
     clientSelect.addEventListener('change', () => {
         const clientId = clientSelect.value;
@@ -137,6 +151,21 @@ document.addEventListener('DOMContentLoaded', () => {
             
             alert('Nome do cliente atualizado com sucesso!');
             await populateClients();
+        }
+    });
+
+    addProviderBtn.addEventListener('click', async () => {
+        const providerName = prompt('Digite o nome do novo prestador:');
+        if (providerName) {
+            const newProvider = await fetchData(`${API_URL}/providers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: providerName }),
+            });
+            if (newProvider) {
+                alert('Prestador adicionado com sucesso!');
+                populateProviders();
+            }
         }
     });
 

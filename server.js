@@ -31,9 +31,16 @@ const createTables = async () => {
       procedure_text TEXT NOT NULL
     );
   `;
+  const providerTableQuery = `
+    CREATE TABLE IF NOT EXISTS providers (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL
+    );
+  `;
   try {
     await pool.query(clientTableQuery);
     await pool.query(procedureTableQuery);
+    await pool.query(providerTableQuery);
     console.log('Tabelas verificadas/criadas com sucesso.');
   } catch (err) {
     console.error('Erro ao criar as tabelas', err.stack);
@@ -85,6 +92,31 @@ app.patch('/api/clients/:id', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Erro ao editar cliente' });
+    }
+});
+
+// PROVIDERS
+app.get('/api/providers', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM providers ORDER BY name');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao buscar prestadores' });
+  }
+});
+
+app.post('/api/providers', async (req, res) => {
+    const { name } = req.body;
+    if (!name) {
+        return res.status(400).json({ error: 'O nome do prestador é obrigatório' });
+    }
+    try {
+        const result = await pool.query('INSERT INTO providers (name) VALUES ($1) RETURNING *', [name]);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao adicionar prestador' });
     }
 });
 
