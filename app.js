@@ -50,6 +50,7 @@ async function fetchData(url, options = {}) {
 }
 
 async function populateClients() {
+    const currentClientId = clientSelect.value;
     const clients = await fetchData(`${API_URL}/clients`);
     clientSelect.innerHTML = '<option value="">-- Escolha um cliente --</option>';
     if (clients) {
@@ -60,6 +61,7 @@ async function populateClients() {
             clientSelect.appendChild(option);
         });
     }
+    clientSelect.value = currentClientId;
 }
 
 async function showProcedures(clientId) {
@@ -111,6 +113,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Cliente adicionado com sucesso!');
                 populateClients();
             }
+        }
+    });
+
+    editClientBtn.addEventListener('click', async () => {
+        const clientId = clientSelect.value;
+        if (!clientId) {
+            alert('Por favor, selecione um cliente para editar.');
+            return;
+        }
+
+        const selectedOption = clientSelect.options[clientSelect.selectedIndex];
+        const currentName = selectedOption.textContent;
+
+        const newName = prompt('Edite o nome do cliente:', currentName);
+
+        if (newName && newName.trim() !== '' && newName !== currentName) {
+            await fetchData(`${API_URL}/clients/${clientId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName }),
+            });
+            
+            alert('Nome do cliente atualizado com sucesso!');
+            await populateClients();
         }
     });
 

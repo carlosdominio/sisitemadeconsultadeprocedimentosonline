@@ -67,6 +67,27 @@ app.post('/api/clients', async (req, res) => {
     }
 });
 
+app.patch('/api/clients/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name) {
+        return res.status(400).json({ error: 'O nome do cliente é obrigatório' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE clients SET name = $1 WHERE id = $2 RETURNING *',
+            [name, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Cliente não encontrado' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao editar cliente' });
+    }
+});
+
 // PROCEDURES
 app.get('/api/clients/:clientId/procedures', async (req, res) => {
     const { clientId } = req.params;
