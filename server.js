@@ -162,6 +162,38 @@ app.post('/api/providers/:providerId/procedures', async (req, res) => {
     }
 });
 
+app.delete('/api/provider_procedures/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM provider_procedures WHERE id = $1', [id]);
+        res.status(204).send(); // 204 No Content
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao remover procedimento do prestador' });
+    }
+});
+
+app.patch('/api/provider_procedures/:id', async (req, res) => {
+    const { id } = req.params;
+    const { procedure_text } = req.body;
+    if (!procedure_text) {
+        return res.status(400).json({ error: 'O texto do procedimento é obrigatório' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE provider_procedures SET procedure_text = $1 WHERE id = $2 RETURNING *',
+            [procedure_text, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Procedimento do prestador não encontrado' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao editar procedimento do prestador' });
+    }
+});
+
 // CLIENT PROCEDURES
 app.get('/api/clients/:clientId/procedures', async (req, res) => {
     const { clientId } = req.params;

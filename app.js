@@ -119,6 +119,15 @@ async function showProviderProcedures(providerId, sinistroType) {
             const li = document.createElement('li');
             li.textContent = `${index + 1}. ${proc.procedure_text}`;
             li.dataset.id = proc.id;
+
+            li.addEventListener('click', () => {
+                const currentlySelected = providerProceduresList.querySelector('.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+                li.classList.add('selected');
+            });
+
             providerProceduresList.appendChild(li);
         });
     }
@@ -219,6 +228,53 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Procedimento do prestador adicionado com sucesso!');
                 showProviderProcedures(providerId, sinistroType);
             }
+        }
+    });
+
+    deleteProviderProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = providerProceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento do prestador para remover.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const providerId = providerSelect.value;
+        const sinistroType = sinistroSelect.value;
+
+        if (confirm('Tem certeza que deseja remover este procedimento do prestador?')) {
+            await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
+                method: 'DELETE',
+            });
+            
+            alert('Procedimento do prestador removido com sucesso!');
+            showProviderProcedures(providerId, sinistroType);
+        }
+    });
+
+    editProviderProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = providerProceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento do prestador para editar.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const providerId = providerSelect.value;
+        const sinistroType = sinistroSelect.value;
+        const currentText = selectedProcedure.textContent.split('. ')[1] || '';
+
+        const newText = prompt('Edite o texto do procedimento do prestador:', currentText);
+
+        if (newText !== null && newText.trim() !== '') {
+            await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ procedure_text: newText }),
+            });
+            
+            alert('Procedimento do prestador atualizado com sucesso!');
+            showProviderProcedures(providerId, sinistroType);
         }
     });
 
