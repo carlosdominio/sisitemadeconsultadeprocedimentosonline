@@ -94,6 +94,17 @@ app.post('/api/clients/:clientId/procedures', async (req, res) => {
     }
 });
 
+app.delete('/api/procedures/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM procedures WHERE id = $1', [id]);
+        res.status(204).send(); // 204 No Content
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao remover procedimento' });
+    }
+});
+
 // --- SERVIR ARQUIVOS ESTÁTICOS ---
 app.use(express.static(__dirname));
 

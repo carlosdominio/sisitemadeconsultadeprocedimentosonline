@@ -38,7 +38,6 @@ async function fetchData(url, options = {}) {
             const errorText = await response.text();
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
-        // Se o método for DELETE e a resposta for 204, não há corpo para parsear
         if (response.status === 204) {
             return null; 
         }
@@ -76,6 +75,15 @@ async function showProcedures(clientId) {
             li.textContent = `${index + 1}. ${proc.procedure_text}`;
             li.dataset.id = proc.id;
             li.dataset.index = index;
+
+            li.addEventListener('click', () => {
+                const currentlySelected = proceduresList.querySelector('.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+                li.classList.add('selected');
+            });
+
             proceduresList.appendChild(li);
         });
         proceduresContainer.style.display = 'block';
@@ -83,7 +91,6 @@ async function showProcedures(clientId) {
 }
 
 // --- Lógica de Eventos ---
-
 document.addEventListener('DOMContentLoaded', () => {
     populateClients();
 
@@ -97,9 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (clientName) {
             const newClient = await fetchData(`${API_URL}/clients`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: clientName }),
             });
             if (newClient) {
@@ -119,15 +124,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (procedureText) {
             const newProcedure = await fetchData(`${API_URL}/clients/${clientId}/procedures`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ procedure_text: procedureText }),
             });
             if (newProcedure) {
                 alert('Procedimento adicionado com sucesso!');
                 showProcedures(clientId);
             }
+        }
+    });
+
+    deleteProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = proceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento para remover.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const clientId = clientSelect.value;
+
+        if (confirm('Tem certeza que deseja remover este procedimento?')) {
+            await fetchData(`${API_URL}/procedures/${procedureId}`, {
+                method: 'DELETE',
+            });
+            
+            alert('Procedimento removido com sucesso!');
+            showProcedures(clientId);
         }
     });
 });
