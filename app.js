@@ -8,6 +8,10 @@ const proceduresList = document.getElementById('proceduresList');
 const addProcedureBtn = document.getElementById('addProcedureBtn');
 const editProcedureBtn = document.getElementById('editProcedureBtn');
 const deleteProcedureBtn = document.getElementById('deleteProcedureBtn');
+const quillEditorContainer = document.getElementById('quill-editor-container');
+const editorDiv = document.getElementById('editor');
+const saveQuillProcedureBtn = document.getElementById('save-quill-procedure-btn');
+const cancelQuillProcedureBtn = document.getElementById('cancel-quill-procedure-btn');
 const addClientBtn = document.getElementById('addClientBtn');
 const editClientBtn = document.getElementById('editClientBtn');
 const providerSelect = document.getElementById('providerSelect');
@@ -323,44 +327,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+let quill;
+let editingProcedureId = null; // Variável para armazenar o ID do procedimento em edição
+
     addProcedureBtn.addEventListener('click', async () => {
         const clientId = clientSelect.value;
         if (!clientId) {
             alert('Por favor, selecione um cliente primeiro.');
             return;
         }
-        const procedureText = prompt('Digite o texto do novo procedimento:');
-        if (procedureText) {
-            const newProcedure = await fetchData(`${API_URL}/clients/${clientId}/procedures`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ procedure_text: procedureText }),
+        editingProcedureId = null; // Resetar para adição
+        proceduresList.style.display = 'none';
+        editProcedureBtn.style.display = 'none';
+        deleteProcedureBtn.style.display = 'none';
+        quillEditorContainer.style.display = 'block';
+
+        if (!quill) {
+            quill = new Quill(editorDiv, {
+                theme: 'snow'
             });
-            if (newProcedure) {
-                alert('Procedimento adicionado com sucesso!');
+        }
+        quill.setContents([]); // Clear previous content
+    });
+
+    saveQuillProcedureBtn.addEventListener('click', async () => {
+        const clientId = clientSelect.value;
+        if (!clientId) {
+            alert('Por favor, selecione um cliente primeiro.');
+            return;
+        }
+        const procedureContent = quill.root.innerHTML;
+        if (procedureContent && procedureContent !== '<p><br></p>') {
+            let response;
+            if (editingProcedureId) {
+                // Atualizar procedimento existente
+                response = await fetchData(`${API_URL}/procedures/${editingProcedureId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ procedure_text: procedureContent }),
+                });
+            } else {
+                // Adicionar novo procedimento
+                response = await fetchData(`${API_URL}/clients/${clientId}/procedures`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ procedure_text: procedureContent }),
+                });
+            }
+
+            if (response) {
+                alert(`Procedimento ${editingProcedureId ? 'atualizado' : 'adicionado'} com sucesso!`);
+                quillEditorContainer.style.display = 'none';
+                quill.setContents([]);
+                proceduresList.style.display = 'block';
+                editProcedureBtn.style.display = 'inline-block';
+                deleteProcedureBtn.style.display = 'inline-block';
                 showProcedures(clientId);
             }
+        } else {
+            alert('O procedimento não pode estar vazio.');
         }
     });
 
-    deleteProcedureBtn.addEventListener('click', async () => {
-        const selectedProcedure = proceduresList.querySelector('.selected');
-        if (!selectedProcedure) {
-            alert('Por favor, selecione um procedimento para remover.');
-            return;
-        }
-
-        const procedureId = selectedProcedure.dataset.id;
-        const clientId = clientSelect.value;
-
-        if (confirm('Tem certeza que deseja remover este procedimento?')) {
-            await fetchData(`${API_URL}/procedures/${procedureId}`, {
-                method: 'DELETE',
-            });
-            
-            alert('Procedimento removido com sucesso!');
-            showProcedures(clientId);
-        }
+    cancelQuillProcedureBtn.addEventListener('click', () => {
+        quillEditorContainer.style.display = 'none';
+        quill.setContents([]);
+        proceduresList.style.display = 'block';
+        editProcedureBtn.style.display = 'inline-block';
+        deleteProcedureBtn.style.display = 'inline-block';
+        editingProcedureId = null; // Reset editing state
     });
 
     editProcedureBtn.addEventListener('click', async () => {
@@ -370,21 +405,18 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const procedureId = selectedProcedure.dataset.id;
-        const clientId = clientSelect.value;
+        editingProcedureId = selectedProcedure.dataset.id;
         const currentText = selectedProcedure.textContent.split('. ')[1] || '';
 
-        const newText = prompt('Edite o texto do procedimento:', currentText);
+        proceduresList.style.display = 'none';
+        addProcedureBtn.style.display = 'none';
+        deleteProcedureBtn.style.display = 'none';
+        quillEditorContainer.style.display = 'block';
 
-        if (newText !== null && newText.trim() !== '') {
-            await fetchData(`${API_URL}/procedures/${procedureId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ procedure_text: newText }),
+        if (!quill) {
+            quill = new Quill(editorDiv, {
+                theme: 'snow'
             });
-            
-            alert('Procedimento atualizado com sucesso!');
-            showProcedures(clientId);
         }
+        quill.root.innerHTML = currentText; // Load existing content
     });
-});
