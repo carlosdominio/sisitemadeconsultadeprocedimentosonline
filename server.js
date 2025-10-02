@@ -37,10 +37,19 @@ const createTables = async () => {
       name VARCHAR(255) NOT NULL
     );
   `;
+  const providerProcedureTableQuery = `
+    CREATE TABLE IF NOT EXISTS provider_procedures (
+      id SERIAL PRIMARY KEY,
+      provider_id INTEGER REFERENCES providers(id) ON DELETE CASCADE,
+      sinistro_type VARCHAR(255) NOT NULL,
+      procedure_text TEXT NOT NULL
+    );
+  `;
   try {
     await pool.query(clientTableQuery);
     await pool.query(procedureTableQuery);
     await pool.query(providerTableQuery);
+    await pool.query(providerProcedureTableQuery);
     console.log('Tabelas verificadas/criadas com sucesso.');
   } catch (err) {
     console.error('Erro ao criar as tabelas', err.stack);
@@ -120,7 +129,40 @@ app.post('/api/providers', async (req, res) => {
     }
 });
 
-// PROCEDURES
+// PROVIDER PROCEDURES
+app.get('/api/providers/:providerId/procedures/:sinistroType', async (req, res) => {
+    const { providerId, sinistroType } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY id',
+            [providerId, sinistroType]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao buscar procedimentos do prestador' });
+    }
+});
+
+app.post('/api/providers/:providerId/procedures', async (req, res) => {
+    const { providerId } = req.params;
+    const { sinistro_type, procedure_text } = req.body;
+    if (!sinistro_type || !procedure_text) {
+        return res.status(400).json({ error: 'Tipo de sinistro e texto do procedimento são obrigatórios' });
+    }
+    try {
+        const result = await pool.query(
+            'INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3) RETURNING *',
+            [providerId, sinistro_type, procedure_text]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao adicionar procedimento do prestador' });
+    }
+});
+
+// CLIENT PROCEDURES
 app.get('/api/clients/:clientId/procedures', async (req, res) => {
     const { clientId } = req.params;
     try {

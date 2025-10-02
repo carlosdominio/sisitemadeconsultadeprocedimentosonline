@@ -105,6 +105,26 @@ async function showProcedures(clientId) {
     }
 }
 
+async function showProviderProcedures(providerId, sinistroType) {
+    if (!providerId || !sinistroType) {
+        providerProceduresContainer.style.display = 'none';
+        return;
+    }
+    providerProceduresTitle.textContent = `Procedimentos do Prestador (${providerSelect.options[providerSelect.selectedIndex].textContent}) - ${sinistroType}`;
+
+    const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
+    providerProceduresList.innerHTML = '';
+    if (procedures) {
+        procedures.forEach((proc, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${proc.procedure_text}`;
+            li.dataset.id = proc.id;
+            providerProceduresList.appendChild(li);
+        });
+    }
+    providerProceduresContainer.style.display = 'block';
+}
+
 // --- Lógica de Eventos ---
 document.addEventListener('DOMContentLoaded', () => {
     populateClients();
@@ -113,6 +133,18 @@ document.addEventListener('DOMContentLoaded', () => {
     clientSelect.addEventListener('change', () => {
         const clientId = clientSelect.value;
         showProcedures(clientId);
+    });
+
+    providerSelect.addEventListener('change', () => {
+        const providerId = providerSelect.value;
+        const sinistroType = sinistroSelect.value;
+        showProviderProcedures(providerId, sinistroType);
+    });
+
+    sinistroSelect.addEventListener('change', () => {
+        const providerId = providerSelect.value;
+        const sinistroType = sinistroSelect.value;
+        showProviderProcedures(providerId, sinistroType);
     });
 
     addClientBtn.addEventListener('click', async () => {
@@ -165,6 +197,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newProvider) {
                 alert('Prestador adicionado com sucesso!');
                 populateProviders();
+            }
+        }
+    });
+
+    addProviderProcedureBtn.addEventListener('click', async () => {
+        const providerId = providerSelect.value;
+        const sinistroType = sinistroSelect.value;
+        if (!providerId || !sinistroType) {
+            alert('Por favor, selecione um prestador e um tipo de sinistro primeiro.');
+            return;
+        }
+        const procedureText = prompt('Digite o texto do novo procedimento para o prestador:');
+        if (procedureText) {
+            const newProcedure = await fetchData(`${API_URL}/providers/${providerId}/procedures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
+            });
+            if (newProcedure) {
+                alert('Procedimento do prestador adicionado com sucesso!');
+                showProviderProcedures(providerId, sinistroType);
             }
         }
     });
