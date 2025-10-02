@@ -97,7 +97,7 @@ app.post('/api/clients/:clientId/procedures', async (req, res) => {
 // --- SERVIR ARQUIVOS ESTÁTICOS ---
 app.use(express.static(__dirname));
 
-app.get('*_*, (req, res) => {
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
