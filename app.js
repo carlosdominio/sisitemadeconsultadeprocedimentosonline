@@ -65,6 +65,7 @@ async function populateClients() {
 }
 
 async function populateProviders() {
+    const currentProviderId = providerSelect.value;
     const providers = await fetchData(`${API_URL}/providers`);
     providerSelect.innerHTML = '<option value="">-- Escolha um prestador --</option>';
     if (providers) {
@@ -75,6 +76,7 @@ async function populateProviders() {
             providerSelect.appendChild(option);
         });
     }
+    providerSelect.value = currentProviderId;
 }
 
 async function showProcedures(clientId) {
@@ -207,6 +209,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Prestador adicionado com sucesso!');
                 populateProviders();
             }
+        }
+    });
+
+    editProviderBtn.addEventListener('click', async () => {
+        const providerId = providerSelect.value;
+        if (!providerId) {
+            alert('Por favor, selecione um prestador para editar.');
+            return;
+        }
+
+        const currentName = providerSelect.options[providerSelect.selectedIndex].textContent;
+        const newName = prompt('Edite o nome do prestador:', currentName);
+
+        if (newName && newName.trim() !== '' && newName !== currentName) {
+            await fetchData(`${API_URL}/providers/${providerId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName }),
+            });
+            
+            alert('Nome do prestador atualizado com sucesso!');
+            await populateProviders();
+            providerSelect.value = providerId; // Re-select the edited provider
+        }
+    });
+
+    deleteProviderBtn.addEventListener('click', async () => {
+        const providerId = providerSelect.value;
+        if (!providerId) {
+            alert('Por favor, selecione um prestador para remover.');
+            return;
+        }
+
+        const providerName = providerSelect.options[providerSelect.selectedIndex].textContent;
+
+        if (confirm(`Tem certeza que deseja remover o prestador "${providerName}" e todos os seus procedimentos?`)) {
+            await fetchData(`${API_URL}/providers/${providerId}`, {
+                method: 'DELETE',
+            });
+            
+            alert('Prestador removido com sucesso!');
+            populateProviders(); // Refresh the list
+            providerProceduresContainer.style.display = 'none'; // Hide procedures
         }
     });
 
