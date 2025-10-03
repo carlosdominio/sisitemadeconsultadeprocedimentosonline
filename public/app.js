@@ -84,6 +84,28 @@ async function populateProviders() {
             providerIds[provider.name] = provider.id; // Store the mapping
         });
     }
+
+    // Check and add 'AON' and 'DEMAIS CLIENTES' if they don't exist
+    const requiredProviders = ['AON', 'DEMAIS CLIENTES'];
+    let providersAdded = false;
+    for (const name of requiredProviders) {
+        if (!providerIds[name]) {
+            console.log(`Adding missing provider: ${name}`);
+            await fetchData(`${API_URL}/providers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name }),
+            });
+            providersAdded = true;
+        }
+    }
+
+    if (providersAdded) {
+        // Re-populate providers if any were added
+        await populateProviders();
+        return; // Exit to avoid re-setting currentProviderId with old values
+    }
+
     providerSelect.value = currentProviderId;
 }
 
