@@ -68,16 +68,20 @@ async function populateClients() {
     clientSelect.value = currentClientId;
 }
 
+let providerIds = {};
+
 async function populateProviders() {
     const currentProviderId = providerSelect.value;
     const providers = await fetchData(`${API_URL}/providers`);
     providerSelect.innerHTML = '<option value="">-- Escolha um prestador --</option>';
+    providerIds = {}; // Reset the mapping
     if (providers) {
         providers.forEach(provider => {
             const option = document.createElement('option');
             option.value = provider.id;
             option.textContent = provider.name;
             providerSelect.appendChild(option);
+            providerIds[provider.name] = provider.id; // Store the mapping
         });
     }
     providerSelect.value = currentProviderId;
@@ -111,33 +115,50 @@ async function showProcedures(clientId) {
     }
 }
 
-async function showProviderProcedures(providerId, sinistroType) {
-    if (!providerId || !sinistroType) {
+async function showAllProviderProcedures(sinistroType) {
+    if (!sinistroType) {
+        additionalProviderProceduresContainer.style.display = 'none';
         providerProceduresContainer.style.display = 'none';
         return;
     }
-    providerProceduresTitle.textContent = `Procedimentos do Prestador (${providerSelect.options[providerSelect.selectedIndex].textContent}) - ${sinistroType}`;
 
-    const procedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
-    providerProceduresList.innerHTML = '';
-    if (procedures) {
-        procedures.forEach((proc, index) => {
-            const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${proc.procedure_text}`;
-            li.dataset.id = proc.id;
+    const data = await fetchData(`${API_URL}/all-provider-procedures/${sinistroType}`);
 
-            li.addEventListener('click', () => {
-                const currentlySelected = providerProceduresList.querySelector('.selected');
-                if (currentlySelected) {
-                    currentlySelected.classList.remove('selected');
-                }
-                li.classList.add('selected');
+    if (data) {
+        // Populate AON procedures
+        additionalProviderProceduresList.innerHTML = '';
+        if (data.aon) {
+            data.aon.forEach((proc, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${proc.procedure_text}`;
+                li.dataset.id = proc.id;
+
+                li.addEventListener('click', () => {
+                    const currentlySelected = additionalProviderProceduresList.querySelector('.selected');
+                    if (currentlySelected) {
+                        currentlySelected.classList.remove('selected');
+                    }
+                    li.classList.add('selected');
+                });
+
+                additionalProviderProceduresList.appendChild(li);
             });
+        }
 
-            providerProceduresList.appendChild(li);
-        });
+        // Populate DEMAIS CLIENTES procedures
+        providerProceduresList.innerHTML = '';
+        if (data.demais_clientes) {
+            data.demais_clientes.forEach((proc, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${proc.procedure_text}`;
+                li.dataset.id = proc.id;
+                providerProceduresList.appendChild(li);
+            });
+        }
+
+        additionalProviderProceduresContainer.style.display = 'block';
+        providerProceduresContainer.style.display = 'block';
     }
-    providerProceduresContainer.style.display = 'block';
 }
 
 // --- Lógica de Eventos ---
@@ -151,15 +172,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     providerSelect.addEventListener('change', () => {
-        const providerId = providerSelect.value;
         const sinistroType = sinistroSelect.value;
-        showProviderProcedures(providerId, sinistroType);
+        showAllProviderProcedures(sinistroType);
     });
 
     sinistroSelect.addEventListener('change', () => {
-        const providerId = providerSelect.value;
         const sinistroType = sinistroSelect.value;
-        showProviderProcedures(providerId, sinistroType);
+        showAllProviderProcedures(sinistroType);
     });
 
     addClientBtn.addEventListener('click', async () => {
@@ -420,3 +439,73 @@ let editingProcedureId = null; // Variável para armazenar o ID do procedimento 
         }
         quill.root.innerHTML = currentText; // Load existing content
     });
+
+    // Event listeners for AON provider procedures
+    addAdditionalProviderProcedureBtn.addEventListener('click', async () => {
+        const sinistroType = sinistroSelect.value;
+        const aonProviderId = providerIds['AON'];
+
+        if (!aonProviderId || !sinistroType) {
+            alert('O provedor AON não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
+            return;
+        }
+
+        const procedureText = prompt('Digite o texto do novo procedimento para o prestador AON:');
+        if (procedureText) {
+            const newProcedure = await fetchData(`${API_URL}/providers/${aonProviderId}/procedures`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
+            });
+            if (newProcedure) {
+                alert('Procedimento do prestador AON adicionado com sucesso!');
+                showAllProviderProcedures(sinistroType);
+            }
+        }
+    });
+
+    editAdditionalProviderProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = additionalProviderProceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento do prestador AON para editar.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const sinistroType = sinistroSelect.value;
+        const currentText = selectedProcedure.textContent.split('. ')[1] || '';
+
+        const newText = prompt('Edite o texto do procedimento do prestador AON:', currentText);
+
+        if (newText !== null && newText.trim() !== '') {
+            await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ procedure_text: newText }),
+            });
+            
+            alert('Procedimento do prestador AON atualizado com sucesso!');
+            showAllProviderProcedures(sinistroType);
+        }
+    });
+
+    deleteAdditionalProviderProcedureBtn.addEventListener('click', async () => {
+        const selectedProcedure = additionalProviderProceduresList.querySelector('.selected');
+        if (!selectedProcedure) {
+            alert('Por favor, selecione um procedimento do prestador AON para remover.');
+            return;
+        }
+
+        const procedureId = selectedProcedure.dataset.id;
+        const sinistroType = sinistroSelect.value;
+
+        if (confirm('Tem certeza que deseja remover este procedimento do prestador AON?')) {
+            await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
+                method: 'DELETE',
+            });
+            
+            alert('Procedimento do prestador AON removido com sucesso!');
+            showAllProviderProcedures(sinistroType);
+        }
+    });
+});
