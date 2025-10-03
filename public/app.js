@@ -137,58 +137,79 @@ async function showProcedures(clientId) {
     }
 }
 
-async function showAllProviderProcedures(sinistroType) {
+async function showAllProviderProcedures(providerId, sinistroType) {
     if (!sinistroType) {
         additionalProviderProceduresContainer.style.display = 'none';
         providerProceduresContainer.style.display = 'none';
         return;
     }
 
-    const data = await fetchData(`${API_URL}/all-provider-procedures/${sinistroType}`);
+    // Fetch AON procedures (fixed)
+    const aonProvider = await fetchData(`${API_URL}/providers`);
+    const aonProviderId = aonProvider.find(p => p.name === 'AON')?.id;
+    let aonProcedures = [];
+    if (aonProviderId) {
+        const data = await fetchData(`${API_URL}/providers/${aonProviderId}/procedures/${sinistroType}`);
+        if (data) aonProcedures = data;
+    }
 
-    if (data) {
-        // Populate AON procedures
-        additionalProviderProceduresList.innerHTML = '';
-        if (data.aon) {
-            data.aon.forEach((proc, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${proc.procedure_text}`;
-                li.dataset.id = proc.id;
+    // Fetch procedures for the selected provider (dynamic for DEMAIS CLIENTES box)
+    let demaisClientesProcedures = [];
+    if (providerId) {
+        const data = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
+        if (data) demaisClientesProcedures = data;
+    }
 
-                li.addEventListener('click', () => {
-                    const currentlySelected = additionalProviderProceduresList.querySelector('.selected');
-                    if (currentlySelected) {
-                        currentlySelected.classList.remove('selected');
-                    }
-                    li.classList.add('selected');
-                });
+    // Populate AON procedures
+    additionalProviderProceduresList.innerHTML = '';
+    if (aonProcedures) {
+        aonProcedures.forEach((proc, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${proc.procedure_text}`;
+            li.dataset.id = proc.id;
 
-                additionalProviderProceduresList.appendChild(li);
+            li.addEventListener('click', () => {
+                const currentlySelected = additionalProviderProceduresList.querySelector('.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+                li.classList.add('selected');
             });
-        }
 
-        // Populate DEMAIS CLIENTES procedures
-        providerProceduresList.innerHTML = '';
-        if (data.demais_clientes) {
-            data.demais_clientes.forEach((proc, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${proc.procedure_text}`;
-                li.dataset.id = proc.id;
+            additionalProviderProceduresList.appendChild(li);
+        });
+    }
 
-                li.addEventListener('click', () => {
-                    const currentlySelected = providerProceduresList.querySelector('.selected');
-                    if (currentlySelected) {
-                        currentlySelected.classList.remove('selected');
-                    }
-                    li.classList.add('selected');
-                });
+    // Populate DEMAIS CLIENTES procedures
+    providerProceduresList.innerHTML = '';
+    if (demaisClientesProcedures) {
+        demaisClientesProcedures.forEach((proc, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${proc.procedure_text}`;
+            li.dataset.id = proc.id;
 
-                providerProceduresList.appendChild(li);
+            li.addEventListener('click', () => {
+                const currentlySelected = providerProceduresList.querySelector('.selected');
+                if (currentlySelected) {
+                    currentlySelected.classList.remove('selected');
+                }
+                li.classList.add('selected');
             });
-        }
 
+            providerProceduresList.appendChild(li);
+        });
+    }
+
+    // Update titles and display containers
+    additionalProviderProceduresTitle.textContent = `Procedimentos do Prestador AON - ${sinistroType}`;
+    if (providerId) {
+        const selectedProviderName = providerSelect.options[providerSelect.selectedIndex].textContent;
+        providerProceduresTitle.textContent = `Procedimentos do Prestador (${selectedProviderName}) - ${sinistroType}`;
         additionalProviderProceduresContainer.style.display = 'block';
         providerProceduresContainer.style.display = 'block';
+    } else {
+        additionalProviderProceduresContainer.style.display = 'none';
+        providerProceduresContainer.style.display = 'none';
     }
 }
 
@@ -203,13 +224,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     providerSelect.addEventListener('change', () => {
+        const providerId = providerSelect.value;
         const sinistroType = sinistroSelect.value;
-        showAllProviderProcedures(sinistroType);
+        showAllProviderProcedures(providerId, sinistroType);
     });
 
     sinistroSelect.addEventListener('change', () => {
+        const providerId = providerSelect.value;
         const sinistroType = sinistroSelect.value;
-        showAllProviderProcedures(sinistroType);
+        showAllProviderProcedures(providerId, sinistroType);
     });
 
     addClientBtn.addEventListener('click', async () => {
@@ -310,22 +333,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addProviderProcedureBtn.addEventListener('click', async () => {
-        const demaisClientesProviderId = providerIds['DEMAIS CLIENTES'];
+        const providerId = providerSelect.value;
         const sinistroType = sinistroSelect.value;
-        console.log('providerIds:', providerIds); // Debugging line
-        if (!demaisClientesProviderId || !sinistroType) {
-            alert('O provedor DEMAIS CLIENTES não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
+        if (!providerId || !sinistroType) {
+            alert('Por favor, selecione um prestador e um tipo de sinistro primeiro.');
             return;
         }
-        const procedureText = prompt('Digite o texto do novo procedimento para o prestador DEMAIS CLIENTES:');
+        const procedureText = prompt('Digite o texto do novo procedimento para o prestador:');
         if (procedureText) {
-            const newProcedure = await fetchData(`${API_URL}/providers/${demaisClientesProviderId}/procedures`, {
+            const newProcedure = await fetchData(`${API_URL}/providers/${providerId}/procedures`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
             });
             if (newProcedure) {
-                alert('Procedimento do prestador DEMAIS CLIENTES adicionado com sucesso!');
+                alert('Procedimento do prestador adicionado com sucesso!');
                 showAllProviderProcedures(sinistroType);
             }
         }
@@ -476,7 +498,6 @@ let editingProcedureId = null; // Variável para armazenar o ID do procedimento 
     addAdditionalProviderProcedureBtn.addEventListener('click', async () => {
         const sinistroType = sinistroSelect.value;
         const aonProviderId = providerIds['AON'];
-        console.log('providerIds:', providerIds); // Debugging line
 
         if (!aonProviderId || !sinistroType) {
             alert('O provedor AON não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
