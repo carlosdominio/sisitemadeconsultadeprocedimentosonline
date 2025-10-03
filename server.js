@@ -141,14 +141,14 @@ app.get('/api/providers/:providerId/procedures/:sinistroType', async (req, res) 
 
 app.post('/api/providers/:providerId/procedures', async (req, res) => {
     const { providerId } = req.params;
-    const { sinistro_type, procedure_text } = req.body;
-    if (!sinistro_type || !procedure_text) {
-        return res.status(400).json({ error: 'Tipo de sinistro e texto do procedimento são obrigatórios' });
+    const { sinistro_type, procedure_text, category } = req.body;
+    if (!sinistro_type || !procedure_text || !category) {
+        return res.status(400).json({ error: 'Tipo de sinistro, texto do procedimento e categoria são obrigatórios' });
     }
     try {
         const result = await pool.query(
-            'INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text) VALUES ($1, $2, $3) RETURNING *',
-            [providerId, sinistro_type, procedure_text]
+            'INSERT INTO provider_procedures (provider_id, sinistro_type, procedure_text, category) VALUES ($1, $2, $3, $4) RETURNING *',
+            [providerId, sinistro_type, procedure_text, category]
         );
         res.status(201).json(result.rows[0]);
     } catch (err) {
@@ -170,14 +170,14 @@ app.delete('/api/provider_procedures/:id', async (req, res) => {
 
 app.patch('/api/provider_procedures/:id', async (req, res) => {
     const { id } = req.params;
-    const { procedure_text } = req.body;
-    if (!procedure_text) {
-        return res.status(400).json({ error: 'O texto do procedimento é obrigatório' });
+    const { procedure_text, category } = req.body;
+    if (!procedure_text || !category) {
+        return res.status(400).json({ error: 'O texto do procedimento e a categoria são obrigatórios' });
     }
     try {
         const result = await pool.query(
-            'UPDATE provider_procedures SET procedure_text = $1 WHERE id = $2 RETURNING *',
-            [procedure_text, id]
+            'UPDATE provider_procedures SET procedure_text = $1, category = $2 WHERE id = $3 RETURNING *',
+            [procedure_text, category, id]
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Procedimento do prestador não encontrado' });

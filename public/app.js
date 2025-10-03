@@ -138,26 +138,20 @@ async function showProcedures(clientId) {
 }
 
 async function showAllProviderProcedures(providerId, sinistroType) {
-    if (!sinistroType) {
+    if (!providerId || !sinistroType) {
         additionalProviderProceduresContainer.style.display = 'none';
         providerProceduresContainer.style.display = 'none';
         return;
     }
 
-    // Fetch AON procedures (fixed)
-    const aonProvider = await fetchData(`${API_URL}/providers`);
-    const aonProviderId = aonProvider.find(p => p.name === 'AON')?.id;
-    let aonProcedures = [];
-    if (aonProviderId) {
-        const data = await fetchData(`${API_URL}/providers/${aonProviderId}/procedures/${sinistroType}`);
-        if (data) aonProcedures = data;
-    }
+    const allProcedures = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
 
-    // Fetch procedures for the selected provider (dynamic for DEMAIS CLIENTES box)
+    let aonProcedures = [];
     let demaisClientesProcedures = [];
-    if (providerId) {
-        const data = await fetchData(`${API_URL}/providers/${providerId}/procedures/${sinistroType}`);
-        if (data) demaisClientesProcedures = data;
+
+    if (allProcedures) {
+        aonProcedures = allProcedures.filter(proc => proc.category === 'AON');
+        demaisClientesProcedures = allProcedures.filter(proc => proc.category === 'DEMAIS CLIENTES');
     }
 
     // Populate AON procedures
@@ -201,16 +195,12 @@ async function showAllProviderProcedures(providerId, sinistroType) {
     }
 
     // Update titles and display containers
-    additionalProviderProceduresTitle.textContent = `Procedimentos do Prestador AON - ${sinistroType}`;
-    if (providerId) {
-        const selectedProviderName = providerSelect.options[providerSelect.selectedIndex].textContent;
-        providerProceduresTitle.textContent = `Procedimentos do Prestador (${selectedProviderName}) - ${sinistroType}`;
-        additionalProviderProceduresContainer.style.display = 'block';
-        providerProceduresContainer.style.display = 'block';
-    } else {
-        additionalProviderProceduresContainer.style.display = 'none';
-        providerProceduresContainer.style.display = 'none';
-    }
+    const selectedProviderName = providerSelect.options[providerSelect.selectedIndex]?.textContent || '';
+    additionalProviderProceduresTitle.textContent = `Procedimentos do Prestador (${selectedProviderName}) AON - ${sinistroType}`;
+    providerProceduresTitle.textContent = `Procedimentos do Prestador (${selectedProviderName}) DEMAIS CLIENTES - ${sinistroType}`;
+
+    additionalProviderProceduresContainer.style.display = 'block';
+    providerProceduresContainer.style.display = 'block';
 }
 
 // --- Lógica de Eventos ---
@@ -344,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const newProcedure = await fetchData(`${API_URL}/providers/${providerId}/procedures`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
+                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText, category: 'DEMAIS CLIENTES' }),
             });
             if (newProcedure) {
                 alert('Procedimento do prestador adicionado com sucesso!');
@@ -392,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ procedure_text: newText }),
+                body: JSON.stringify({ procedure_text: newText, category: 'DEMAIS CLIENTES' }),
             });
             
             alert('Procedimento do prestador atualizado com sucesso!');
@@ -509,7 +499,7 @@ let editingProcedureId = null; // Variável para armazenar o ID do procedimento 
             const newProcedure = await fetchData(`${API_URL}/providers/${aonProviderId}/procedures`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
+                body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText, category: 'AON' }),
             });
             if (newProcedure) {
                 alert('Procedimento do prestador AON adicionado com sucesso!');
@@ -535,7 +525,7 @@ let editingProcedureId = null; // Variável para armazenar o ID do procedimento 
             await fetchData(`${API_URL}/provider_procedures/${procedureId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ procedure_text: newText }),
+                body: JSON.stringify({ procedure_text: newText, category: 'AON' }),
             });
             
             alert('Procedimento do prestador AON atualizado com sucesso!');
