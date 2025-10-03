@@ -290,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addProviderProcedureBtn.addEventListener('click', async () => {
         const demaisClientesProviderId = providerIds['DEMAIS CLIENTES'];
         const sinistroType = sinistroSelect.value;
+        console.log('providerIds:', providerIds); // Debugging line
         if (!demaisClientesProviderId || !sinistroType) {
             alert('O provedor DEMAIS CLIENTES não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
             return;
@@ -453,6 +454,7 @@ let editingProcedureId = null; // Variável para armazenar o ID do procedimento 
     addAdditionalProviderProcedureBtn.addEventListener('click', async () => {
         const sinistroType = sinistroSelect.value;
         const aonProviderId = providerIds['AON'];
+        console.log('providerIds:', providerIds); // Debugging line
 
         if (!aonProviderId || !sinistroType) {
             alert('O provedor AON não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
