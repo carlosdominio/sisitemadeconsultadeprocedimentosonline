@@ -221,6 +221,38 @@ app.get('/api/all-provider-procedures/:sinistroType', async (req, res) => {
     }
 });
 
+app.get('/api/all-provider-procedures/:sinistroType', async (req, res) => {
+    const { sinistroType } = req.params;
+    try {
+        // Find provider IDs
+        const aonProvider = await pool.query('SELECT id FROM providers WHERE name = $1', ['AON']);
+        const demaisProvider = await pool.query('SELECT id FROM providers WHERE name = $1', ['DEMAIS CLIENTES']);
+
+        const aonProviderId = aonProvider.rows[0]?.id;
+        const demaisProviderId = demaisProvider.rows[0]?.id;
+
+        // Fetch procedures
+        const aonProcedures = aonProviderId ? await pool.query(
+            'SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY id',
+            [aonProviderId, sinistroType]
+        ) : { rows: [] };
+
+        const demaisProcedures = demaisProviderId ? await pool.query(
+            'SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY id',
+            [demaisProviderId, sinistroType]
+        ) : { rows: [] };
+
+        res.json({
+            aon: aonProcedures.rows,
+            demais_clientes: demaisProcedures.rows,
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao buscar todos os procedimentos do prestador' });
+    }
+});
+
 // CLIENT PROCEDURES
 app.get('/api/clients/:clientId/procedures', async (req, res) => {
     const { clientId } = req.params;

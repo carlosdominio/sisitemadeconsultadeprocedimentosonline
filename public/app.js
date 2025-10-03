@@ -152,6 +152,15 @@ async function showAllProviderProcedures(sinistroType) {
                 const li = document.createElement('li');
                 li.textContent = `${index + 1}. ${proc.procedure_text}`;
                 li.dataset.id = proc.id;
+
+                li.addEventListener('click', () => {
+                    const currentlySelected = providerProceduresList.querySelector('.selected');
+                    if (currentlySelected) {
+                        currentlySelected.classList.remove('selected');
+                    }
+                    li.classList.add('selected');
+                });
+
                 providerProceduresList.appendChild(li);
             });
         }
@@ -279,22 +288,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     addProviderProcedureBtn.addEventListener('click', async () => {
-        const providerId = providerSelect.value;
+        const demaisClientesProviderId = providerIds['DEMAIS CLIENTES'];
         const sinistroType = sinistroSelect.value;
-        if (!providerId || !sinistroType) {
-            alert('Por favor, selecione um prestador e um tipo de sinistro primeiro.');
+        if (!demaisClientesProviderId || !sinistroType) {
+            alert('O provedor DEMAIS CLIENTES não foi encontrado ou nenhum tipo de sinistro foi selecionado.');
             return;
         }
-        const procedureText = prompt('Digite o texto do novo procedimento para o prestador:');
+        const procedureText = prompt('Digite o texto do novo procedimento para o prestador DEMAIS CLIENTES:');
         if (procedureText) {
-            const newProcedure = await fetchData(`${API_URL}/providers/${providerId}/procedures`, {
+            const newProcedure = await fetchData(`${API_URL}/providers/${demaisClientesProviderId}/procedures`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sinistro_type: sinistroType, procedure_text: procedureText }),
             });
             if (newProcedure) {
-                alert('Procedimento do prestador adicionado com sucesso!');
-                showProviderProcedures(providerId, sinistroType);
+                alert('Procedimento do prestador DEMAIS CLIENTES adicionado com sucesso!');
+                showAllProviderProcedures(sinistroType);
             }
         }
     });
@@ -316,7 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             alert('Procedimento do prestador removido com sucesso!');
-            showProviderProcedures(providerId, sinistroType);
+            showAllProviderProcedures(sinistroType);
         }
     });
 
@@ -342,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             alert('Procedimento do prestador atualizado com sucesso!');
-            showProviderProcedures(providerId, sinistroType);
+            showAllProviderProcedures(sinistroType);
         }
     });
 
