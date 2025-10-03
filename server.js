@@ -132,7 +132,16 @@ app.get('/api/providers/:providerId/procedures/:sinistroType', async (req, res) 
             'SELECT * FROM provider_procedures WHERE provider_id = $1 AND sinistro_type = $2 ORDER BY id',
             [providerId, sinistroType]
         );
-        res.json(result.rows);
+
+        // Infer category if null
+        const proceduresWithCategory = result.rows.map(proc => {
+            if (proc.category === null) {
+                return { ...proc, category: 'DEMAIS CLIENTES' }; // Default to DEMAIS CLIENTES
+            }
+            return proc;
+        });
+
+        res.json(proceduresWithCategory);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Erro ao buscar procedimentos do prestador' });
@@ -141,9 +150,12 @@ app.get('/api/providers/:providerId/procedures/:sinistroType', async (req, res) 
 
 app.post('/api/providers/:providerId/procedures', async (req, res) => {
     const { providerId } = req.params;
-    const { sinistro_type, procedure_text, category } = req.body;
-    if (!sinistro_type || !procedure_text || !category) {
-        return res.status(400).json({ error: 'Tipo de sinistro, texto do procedimento e categoria são obrigatórios' });
+    let { sinistro_type, procedure_text, category } = req.body;
+    if (!sinistro_type || !procedure_text) {
+        return res.status(400).json({ error: 'Tipo de sinistro e texto do procedimento são obrigatórios' });
+    }
+    if (!category) {
+        category = 'DEMAIS CLIENTES'; // Default category if not provided
     }
     try {
         const result = await pool.query(
@@ -170,11 +182,21 @@ app.delete('/api/provider_procedures/:id', async (req, res) => {
 
 app.patch('/api/provider_procedures/:id', async (req, res) => {
     const { id } = req.params;
-    const { procedure_text, category } = req.body;
-    if (!procedure_text || !category) {
-        return res.status(400).json({ error: 'O texto do procedimento e a categoria são obrigatórios' });
+    let { procedure_text, category } = req.body;
+    if (!procedure_text) {
+        return res.status(400).json({ error: 'O texto do procedimento é obrigatório' });
     }
     try {
+        // Get existing category if not provided in the request
+        if (!category) {
+            const existingProcedure = await pool.query('SELECT category FROM provider_procedures WHERE id = $1', [id]);
+            if (existingProcedure.rows.length > 0) {
+                category = existingProcedure.rows[0].category;
+            } else {
+                return res.status(404).json({ error: 'Procedimento do prestador não encontrado' });
+            }
+        }
+
         const result = await pool.query(
             'UPDATE provider_procedures SET procedure_text = $1, category = $2 WHERE id = $3 RETURNING *',
             [procedure_text, category, id]
